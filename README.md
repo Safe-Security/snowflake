@@ -8,6 +8,8 @@ We tried to implement a solution that offers a workaround to this situation by c
 
 ## Solution Architecture
 
+![Architecture](SnowflakeArch.jpg)
+
 - How it works:
   - Create a procedure to extract required information (This step will require ACCOUNTADMIN privileges)
   - Store the information in separate tables
