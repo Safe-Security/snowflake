@@ -34,3 +34,17 @@ NOTE: Please use ACCOUNTADMIN Credentials for the below-mentioned steps
 **STEP 4**: After execution of the script is complete, you username and password will be displayed on the screen
 
 ![Credentials](screenshots/ss_userCredentials.png)
+
+## What kind of information is made available to the Auditor?
+
+Snowflake stored procedure was built with the intentions of performing security auditng of the SaaS application. To do that the below mentioned information is being fetched by the procedure to store in the tables accessible by the auditor:
+
+- Configured network policies
+- List of Disabled users
+- Every user's Client session keepalive
+- Every user's client session keep-alive heartbeat frequency
+- Every Users's password expiration policy
+- MFA status corresponding to every user
+- Acive network policies against every user
+
+NOTE: The procedure only shares the configuration details with non-privileged tables and no intellectual or proprietary data is shared to the auditor. This information can be verified at any time by the Snowflake administrators by accessing the data in the non-privileged tables.
