@@ -55,17 +55,23 @@ NOTE: The procedure only shares the configuration details with non-privileged ta
 ## How to troubleshoot?
 
 **To check whether the data inside the un-privileged table was available or not**
+
 Execute the commands mentioned below and check for the column '_CREATED_AT_'if it is in sync with the current date on the system.
 
 **select * from SAFE_DB.SAFE_SCHEMA.policies;**
+
 ![image](https://user-images.githubusercontent.com/77711040/127527014-4ba5e186-e430-4c00-84da-21e4defe56fd.png)
 
 **select * from SAFE_DB.SAFE_SCHEMA.user_details;**
+
 ![image](https://user-images.githubusercontent.com/77711040/127528351-40b8a336-2b77-4f17-aadc-e4e86c2eca55.png)
 
 **select * from SAFE_DB.SAFE_SCHEMA.userpolicies;**
+
 ![image](https://user-images.githubusercontent.com/77711040/127528977-db6fc62a-c9a5-4dba-9dc5-813681ee8e2b.png)
 
 Execute the below command to retrieve the current date on the system:
+
 **select current_date();**
+
 ![image](https://user-images.githubusercontent.com/77711040/127530187-a0a589e2-ea18-4c4a-945c-6ce16a47a720.png)
