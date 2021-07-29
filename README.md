@@ -47,5 +47,7 @@ Snowflake stored procedure was built with the intentions of performing security 
 - Every Users's password expiration policy
 - MFA status corresponding to every user
 - Acive network policies against every user
+- List of Inactive users
+- List of users with password authentication enabled
 
 NOTE: The procedure only shares the configuration details with non-privileged tables and no intellectual or proprietary data is shared to the auditor. This information can be verified at any time by the Snowflake administrators by accessing the data in the non-privileged tables.
