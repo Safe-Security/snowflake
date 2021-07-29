@@ -91,7 +91,7 @@ Execute the command mentioned below and look for the column **schedule**
 
 Execute the command mentioned below and check for the Logs, if they are similar to the one in the picture below then the execution was successful
 
-- select * from safe_db.safe_schema.log_table;
+-** select * from safe_db.safe_schema.log_table;**
 
 ![image](https://user-images.githubusercontent.com/77711040/127538640-7530894c-4c45-4f62-9d01-79688bd2b6ff.png)
 
