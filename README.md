@@ -80,7 +80,7 @@ NOTE: The procedure only shares the configuration details with non-privileged ta
 
 #### **2. Check the time duration scheduled for the execution of the stored procedure**
 
-Execute the command mentioned below and look for the column **schedule**
+- Execute the command mentioned below and look for the column **schedule**
 
 **show terse tasks;**
 
