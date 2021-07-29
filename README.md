@@ -78,7 +78,7 @@ NOTE: The procedure only shares the configuration details with non-privileged ta
 ![image](https://user-images.githubusercontent.com/77711040/127531414-0b3f5be0-448d-4b22-b3a2-10db0ff63274.png)
 
 
-#### **1. Check the time duration scheduled for the execution of the stored procedure**
+#### **2. Check the time duration scheduled for the execution of the stored procedure**
 
 Execute the command mentioned below and look for the column **schedule**
 
