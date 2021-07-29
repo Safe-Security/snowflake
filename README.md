@@ -18,7 +18,8 @@ We tried to implement a solution that offers a workaround to this situation by c
 
 ## How to Use
 
-NOTE: Please use ACCOUNTADMIN Credentials for the below-mentioned steps 
+NOTE: Please use ACCOUNTADMIN Credentials for the below-mentioned steps
+
 **STEP 1**: Login to your Snowflake account with Account Admin privileges
 
 ![Login](screenshots/ss_snowflakeSignin.png)
