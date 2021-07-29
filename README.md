@@ -76,3 +76,14 @@ NOTE: The procedure only shares the configuration details with non-privileged ta
 **select * from safe_db.safe_schema.userpolicies;**
 
 ![image](https://user-images.githubusercontent.com/77711040/127531414-0b3f5be0-448d-4b22-b3a2-10db0ff63274.png)
+
+
+#### **1. Check the time duration scheduled for the execution of the stored procedure**
+
+Execute the command mentioned below and look for the column **schedule**
+
+**show terse tasks;**
+
+![image](https://user-images.githubusercontent.com/77711040/127534625-c8bc20ec-cbc0-4962-a900-6d58595f9ac6.png)
+
+
