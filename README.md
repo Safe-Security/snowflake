@@ -56,34 +56,40 @@ NOTE: The procedure only shares the configuration details with non-privileged ta
 
 #### **1. Check whether the non-privileged tables contain the most recent data**
 
-- Execute the command mentioned below to retrieve the current date on the system:
+Execute the command mentioned below to retrieve the current date on the system:
 
-**select current_date();**
+- **select current_date();**
 
 ![image](https://user-images.githubusercontent.com/77711040/127531201-6d6e6e97-016f-4239-876d-fced370764b1.png)
 
 
-- Execute the commands mentioned below and check whether the column **CREATED_AT** is in sync with the current date on the system
+Execute the commands mentioned below and check whether the column **CREATED_AT** is in sync with the current date on the system
 
-**select * from safe_db.safe_schema.policies;**
+- **select * from safe_db.safe_schema.policies;**
 
 ![image](https://user-images.githubusercontent.com/77711040/127531276-ee708cb9-c8a9-4636-8360-8b591b3397ad.png)
 
-**select * from safe_db.safe_schema.user_details;**
+- **select * from safe_db.safe_schema.user_details;**
 
 ![image](https://user-images.githubusercontent.com/77711040/127531355-2ff21689-257f-471f-9c34-670caa44008c.png)
 
-**select * from safe_db.safe_schema.userpolicies;**
+- **select * from safe_db.safe_schema.userpolicies;**
 
 ![image](https://user-images.githubusercontent.com/77711040/127531414-0b3f5be0-448d-4b22-b3a2-10db0ff63274.png)
 
 
 #### **2. Check the time duration scheduled for the execution of the stored procedure**
 
-- Execute the command mentioned below and look for the column **schedule**
+Execute the command mentioned below and look for the column **schedule**
 
-**show terse tasks;**
+- **show terse tasks;**
 
 ![image](https://user-images.githubusercontent.com/77711040/127534625-c8bc20ec-cbc0-4962-a900-6d58595f9ac6.png)
 
+
+#### **3. Check whether the Stored Procedure executed successfully**
+
+Execute the command mentioned below and check for the Logs, if they are similar to the one in the picture below then the execution was successful
+
+![image](https://user-images.githubusercontent.com/77711040/127538640-7530894c-4c45-4f62-9d01-79688bd2b6ff.png)
 
