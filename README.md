@@ -84,6 +84,8 @@ Execute the command mentioned below and look for the column **schedule**
 
 - **show terse tasks;**
 
+_note_: _Execute the above command with ACCOUNTADMIN role_
+
 ![image](https://user-images.githubusercontent.com/77711040/127534625-c8bc20ec-cbc0-4962-a900-6d58595f9ac6.png)
 
 
