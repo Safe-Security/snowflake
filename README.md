@@ -80,21 +80,20 @@ Execute the commands mentioned below and check whether the column **CREATED_AT**
 
 #### **2. Check the time duration scheduled for the execution of the stored procedure**
 
-Execute the command mentioned below and look for the column **schedule**
+Execute the command mentioned below with ACCOUNTADMIN role and look for the column **schedule**
 
 - **show terse tasks;**
-
-_note_: _Execute the above command with ACCOUNTADMIN role_
 
 ![image](https://user-images.githubusercontent.com/77711040/127534625-c8bc20ec-cbc0-4962-a900-6d58595f9ac6.png)
 
 
 #### **3. Check the state of the task and its next scheduled time**
 
-Execute the commands mentioned below with ACCOUNTADMIN role to check the task's state and next scheduled time.
+Execute the commands mentioned below with ACCOUNTADMIN role to check the state of the task running the stored procedure and its next scheduled time.
 
-- **use SAFE_DB;**
-- **SELECT NAME, STATE, SCHEDULED_TIME, NEXT_SCHEDULED_TIME FROM table( information_schema.task_history( task_name=>'TASK_SAFE' ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())));**
+- **use safe_db;**
+- **select name, state, scheduled_time, next_scheduled_time from table( information_schema.task_history( task_name=>'TASK_SAFE' ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())));
+**
 
 ![image](https://user-images.githubusercontent.com/77711040/127611303-7082aa69-5c34-4db9-9252-3b1ddf2b16a9.png)
 
