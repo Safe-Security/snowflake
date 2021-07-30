@@ -92,8 +92,7 @@ Execute the command mentioned below with ACCOUNTADMIN role and look for the colu
 Execute the commands mentioned below with ACCOUNTADMIN role to check the state of the task running the stored procedure and its next scheduled time.
 
 - **use safe_db;**
-- **select name, state, scheduled_time, next_scheduled_time from table( information_schema.task_history( task_name=>'TASK_SAFE' ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())));
-**
+- **select name, state, scheduled_time, next_scheduled_time from table( information_schema.task_history( task_name=>'TASK_SAFE' ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())));**
 
 ![image](https://user-images.githubusercontent.com/77711040/127611303-7082aa69-5c34-4db9-9252-3b1ddf2b16a9.png)
 
