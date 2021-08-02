@@ -2,18 +2,18 @@
 use role accountadmin;
 
 // Database
-create database if not exists SAFE_DB;
-use SAFE_DB;
+create database if not exists {DB_NAME};
+use {DB_NAME};
 
 // Schema
-create schema if not exists SAFE_Schema;
-use SAFE_DB.SAFE_Schema;
+create schema if not exists {DB_SCHEMA};
+use {DB_NAME}.{DB_SCHEMA};
 
 // Warehouse
-create warehouse if not exists SAFE_WH with warehouse_size = 'SMALL';
+create warehouse if not exists {WAREHOUSE} with warehouse_size = 'SMALL';
 
 //Definition of Procedure
-create or replace procedure Stored_Procedure()
+create or replace procedure {Procedure_name}()
   returns string not null
   language javascript
   execute as caller
@@ -21,8 +21,8 @@ create or replace procedure Stored_Procedure()
   $$
    
     //variable declaration
-    var database = "SAFE_DB";
-    var schema = "SAFE_Schema";
+    var database = "{DB_NAME}";
+    var schema = "{DB_SCHEMA}";
     var tablename = new Array ("policies", "user_details", "userpolicies");
     
     //declaration of logging variables
@@ -76,7 +76,7 @@ create or replace procedure Stored_Procedure()
   
             while (network_policies_object.next())
             {
-                //insert the result into SAFE_DB.SAFE_Schema.policies table
+                //insert the result into {DB_NAME}.{DB_SCHEMA}.policies table
                 var network_policy = network_policies_object.getColumnValueAsString('name');
                 executeonly(`Insert into ${database}.${schema}.${tablename[0]} VALUES ('${network_policy}','${current_date}');`);
             }
@@ -250,49 +250,49 @@ create or replace procedure Stored_Procedure()
   ;
 
 --Drop the tables if they exist
-Drop table if exists SAFE_DB.SAFE_Schema.policies;
-Drop table if exists SAFE_DB.SAFE_Schema.user_details;
-Drop table if exists SAFE_DB.SAFE_Schema.userpolicies;
+Drop table if exists {DB_NAME}.{DB_SCHEMA}.policies;
+Drop table if exists {DB_NAME}.{DB_SCHEMA}.user_details;
+Drop table if exists {DB_NAME}.{DB_SCHEMA}.userpolicies;
 
-call Stored_Procedure();
+call {Procedure_name}();
 
 --creating task
-CREATE OR REPLACE TASK TASK_SAFE
-  WAREHOUSE = SAFE_WH
-  SCHEDULE = '1440 MINUTE'
+CREATE OR REPLACE TASK {TASK_NAME}
+  WAREHOUSE = {WAREHOUSE}
+  SCHEDULE = '{PROC_FREQ} MINUTE'
 AS
-CALL Stored_Procedure();
+CALL {Procedure_name}();
 
 --starting the TASK
-ALTER TASK TASK_SAFE RESUME;
+ALTER TASK {TASK_NAME} RESUME;
 
 --command to check TASK state
 SELECT *
 FROM table(
   information_schema.task_history(
-    task_name=>'TASK_SAFE'
+    task_name=>'{TASK_NAME}'
     ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())
   )
 );
 
 --creating read-only role
-create role IF NOT EXISTS read_only_role  comment = 'This role is limited to querying tables in SAFE_Schema';
+create role IF NOT EXISTS {ROLE}  comment = 'This role is limited to querying tables in {DB_SCHEMA}';
 
 --giving grants to the role
-grant usage on database SAFE_DB to role read_only_role;
-grant usage on schema SAFE_DB.SAFE_Schema to role read_only_role;
-grant select on all tables in schema SAFE_DB.SAFE_Schema to role read_only_role;
-grant role read_only_role  to role sysadmin;
-grant usage on warehouse SAFE_WH to role read_only_role;
+grant usage on database {DB_NAME} to role {ROLE};
+grant usage on schema {DB_NAME}.{DB_SCHEMA} to role {ROLE};
+grant select on all tables in schema {DB_NAME}.{DB_SCHEMA} to role {ROLE};
+grant role {ROLE}  to role sysadmin;
+grant usage on warehouse {WAREHOUSE} to role {ROLE};
 
 --defining USERNAME & PASSWORD for the new read-only user
-set user_name = 'SAFE_user';
-drop user if exists SAFE_user;
+set user_name = '{USER}';
+drop user if exists {USER};
 set user_password = (select randstr(10, random()) from table(generator(rowcount => 1)));
 
 --create a user with read-only role
-create user IF NOT EXISTS SAFE_user LOGIN_NAME = $user_name password=$user_password default_role = read_only_role default_warehouse = 'SAFE_WH';
-grant role read_only_role to user SAFE_user;
+create user IF NOT EXISTS {USER} LOGIN_NAME = $user_name password=$user_password default_role = {ROLE} default_warehouse = '{WAREHOUSE}';
+grant role {ROLE} to user {USER};
 
 --creating output table for displaying information required for SAFE on-boarding
 TRUNCATE TABLE IF EXISTS SAFE_Info;
