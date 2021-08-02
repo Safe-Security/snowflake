@@ -38,7 +38,6 @@ Output should look like
 Loading .env file
 Copying template to a new file
 Replacing variables
-
 ```
 
 ### Upload and Execute the created procedure on Snowflake account
