@@ -18,7 +18,35 @@ We tried to implement a solution that offers a workaround to this situation by c
 
 ## How to Use
 
+### Creating the procedure
+
+
+
+**STEP 1**: Copy the `.env.example` contents to `.env`
+
+```
+cp .env.example .env
+```
+
+**STEP 2**: Edit the variables in `.env` file (all variables are configured with default values)
+
+**STEP 3**: Execute snowflake.sh to create a snowflakeStoredProcedureScript.txt
+
+Output should look like
+
+```
+Loading .env file
+Copying template to a new file
+Replacing variables
+
+```
+
+### Upload and Execute the created procedure on Snowflake account
+
+
+
 NOTE: Please use ACCOUNTADMIN Credentials for the below-mentioned steps 
+
 **STEP 1**: Login to your Snowflake account with Account Admin privileges
 
 ![Login](screenshots/ss_snowflakeSignin.png)
