@@ -62,6 +62,61 @@ NOTE: Please use ACCOUNTADMIN Credentials for the below-mentioned steps
 
 ![Credentials](screenshots/ss_userCredentials.png)
 
+## How to troubleshoot?
+
+#### **1. Check whether the non-privileged tables contain the most recent data**
+
+Execute the command mentioned below to retrieve the current date on the system:
+
+- **select current_date();**
+
+![image](screenshots/current_date.png)
+
+
+Execute the commands mentioned below and check whether the column **CREATED_AT** is in sync with the current date on the system
+
+- **select * from safe_db.safe_schema.policies;**
+
+![image](screenshots/policy_table.png)
+
+- **select * from safe_db.safe_schema.user_details;**
+
+![image](screenshots/user_table.png)
+
+- **select * from safe_db.safe_schema.userpolicies;**
+
+![image](screenshots/user_policy_table.png)
+
+
+#### **2. Check the time duration scheduled for the execution of the stored procedure**
+
+Execute the command mentioned below with ACCOUNTADMIN role and look for the column **schedule**
+
+- **show terse tasks;**
+
+![image](screenshots/tasks.png)
+
+
+#### **3. Check the state of the task and its next scheduled time**
+
+Execute the commands mentioned below with ACCOUNTADMIN role to check the state of the task running the stored procedure and its next scheduled time.
+
+- **use safe_db;**
+- **select name, state, scheduled_time, next_scheduled_time from table( information_schema.task_history( task_name=>'TASK_SAFE' ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())));**
+
+![image](screenshots/task_details.png)
+
+
+#### **4. Check whether the Stored Procedure executed successfully**
+
+Execute the command mentioned below and check for the Logs, if they are similar to the one in the picture below then the execution was successful
+
+- **select * from safe_db.safe_schema.log_table;**
+
+![image](screenshots/log_table.png)
+
+_note_: _The logs shown in the image above are for a particular timestamp_
+
 ## What kind of information is made available to the Auditor?
 
 Snowflake stored procedure was built with the intentions of performing security auditng of the SaaS application. To do that the below mentioned information is being fetched by the procedure to store in the tables accessible by the auditor:
