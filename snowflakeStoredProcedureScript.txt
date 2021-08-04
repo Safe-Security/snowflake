@@ -1,0 +1,301 @@
+// Set User Role to Accountadmin
+use role accountadmin;
+
+// Database
+create database if not exists SAFE_DB;
+use SAFE_DB;
+
+// Schema
+create schema if not exists SAFE_Schema;
+use SAFE_DB.SAFE_Schema;
+
+// Warehouse
+create warehouse if not exists SAFE_WH with warehouse_size = 'SMALL';
+
+//Definition of Procedure
+create or replace procedure Stored_Procedure()
+  returns string not null
+  language javascript
+  execute as caller
+  as     
+  $$
+   
+    //variable declaration
+    var database = "SAFE_DB";
+    var schema = "SAFE_Schema";
+    var tablename = new Array ("policies", "user_details", "userpolicies");
+    
+    //declaration of logging variables
+    var do_log = true;
+    var log_table = "log_table";
+    log("Initiating the execution of the Stored Procedure");
+    
+    //storing current time
+    var current_date_obj = executeandreturn('select getdate();');
+    current_date_obj.next();
+    var current_date = convert(current_date_obj.getColumnValue('GETDATE()'));
+    
+    //creating new un-privileged table
+    try{
+    log("Initiating table creation");
+    executeonly(`create table if not exists ${database}.${schema}.${tablename[0]} (policy_name VARCHAR, created_at VARCHAR);`);
+    executeonly(`create table if not exists ${database}.${schema}.${tablename[1]} (username VARCHAR, disabled VARCHAR, ext_auth_duo VARCHAR, client_session_keep_alive VARCHAR, client_session_keep_alive_heartbeat_frequency VARCHAR, password_last_set VARCHAR, CurrentUser VARCHAR, last_success_login VARCHAR, has_password VARCHAR, default_role VARCHAR, email VARCHAR, days_to_expiry VARCHAR, must_change_password VARCHAR,accountadmin_grant VARCHAR, created_at VARCHAR);`);
+    executeonly(`create table if not exists ${database}.${schema}.${tablename[2]} (username VARCHAR, policy VARCHAR, created_at VARCHAR);`);
+    }
+    catch(ERROR){
+        log("Error during table creation: " + ERROR);
+    }
+    
+    //fetch all the users
+    var users = executeandreturn("show users;");
+    
+    //fetch all users with accountadmin role grants
+    try{
+      var accountadmin_role_grants_object = executeandreturn("show grants of role ACCOUNTADMIN;");
+      var accountadmin_users = [];
+      while(accountadmin_role_grants_object.next())
+          {
+              accountadmin_users.push(accountadmin_role_grants_object.getColumnValue('grantee_name'));
+          }
+       }
+    catch{
+        log("Error in fetching the users with Accountadmin grant");
+    }
+    
+    //fetch the list of network policies
+    var network_policies_object = executeandreturn("show network policies;");
+   
+    try{
+        //condition to check whether network policies gives an output or not
+        if (network_policies_object.getRowCount() !== 0)
+        {
+           log("Initiating insertion into the policies table");
+            
+            //TRUNCATING Policies table
+            executeonly(`Truncate table if exists ${database}.${schema}.${tablename[0]};`);
+  
+            while (network_policies_object.next())
+            {
+                //insert the result into SAFE_DB.SAFE_Schema.policies table
+                var network_policy = network_policies_object.getColumnValueAsString('name');
+                executeonly(`Insert into ${database}.${schema}.${tablename[0]} VALUES ('${network_policy}','${current_date}');`);
+            }
+        }
+    }
+    catch(ERROR){
+        log("Error during insertion in "+tablename[0]+": " + ERROR);
+    }
+    
+    //initialisation of the truncate flags
+    truncate_flag_table_2 = 0;
+    truncate_flag_table_3 = 0;
+
+    try
+    {    
+        //condition for checking whether users and roles are accessible
+        if (users.getRowCount() !== 0)
+        {
+        log("Initiating insertion into the user_details and userpolicies table");
+        
+        while(users.next())
+            {
+            if(users.getColumnValue('name')!='SNOWFLAKE')
+                    {
+                    //storing the username, diabled and ext_auth_duo for each user obtained using 'show users' command
+                    var name = users.getColumnValue('name');
+                    var disabled = users.getColumnValue('disabled');
+                    var ext_auth_duo = users.getColumnValue('ext_authn_duo');
+                    var last_success_login = convert(users.getColumnValue('last_success_login'));
+                    var has_password = users.getColumnValue('has_password');
+                    var default_role = users.getColumnValue('default_role');
+                    var email = users.getColumnValue('email');
+                    var days_to_expiry = users.getColumnValue('days_to_expiry');
+                    var must_change_password = users.getColumnValue('must_change_password');
+                    
+                    //fetch the list of user parameters and user description
+                    var user_parameters = executeandreturn("show parameters for user " + name);
+                    var user_desc = executeandreturn("desc user " + name);
+                    
+                    //storing the result of current_user
+                    var currentuserobject = executeandreturn("select current_user();");
+                    
+                    //Test the show parameter object
+                    if (user_parameters.getRowCount() !== 0)
+                    {
+                        
+                        try{
+                            //iterate over user parameters
+                            while (user_parameters.next())
+                                {   
+                                    //checking and storing the value of client_session_keep_alive & client_session_keep_alive_heart_freq for each user
+                                    var key = user_parameters.getColumnValue('key');
+                                    if (key === 'CLIENT_SESSION_KEEP_ALIVE')
+                                    {
+                                    var client_session_keep_alive = user_parameters.getColumnValueAsString('value');
+                                    }
+                                    else if (key === 'CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY')
+                                    {
+                                    var client_session_keep_alive_heart_freq = user_parameters.getColumnValueAsString('value');
+                                    }
+                                    else if(key === 'NETWORK_POLICY')
+                                    {
+                                        var user_policy = user_parameters.getColumnValueAsString('value');
+                                        if (truncate_flag_table_2 == 0)
+                                            {
+                                                executeonly(`Truncate table if exists ${database}.${schema}.${tablename[2]};`);
+                                                truncate_flag_table_2 = 1;
+                                            }
+                                        executeonly(`Insert into ${database}.${schema}.${tablename[2]} values ('${name}','${user_policy}','${current_date}')`);
+                                    }
+                                }
+                            }
+                        catch(ERROR)
+                        {   
+                            log("Error during insertion in "+tablename[2]+": " + ERROR);
+                            break;
+                        }
+                        try{
+                            //Test the desc users object
+                            if (user_desc.getRowCount() !== 0 && currentuserobject.getRowCount() !== 0 && accountadmin_role_grants_object.getRowCount() !== 0)
+                                {   
+                                    
+                                    //iterate over user descriptions
+                                    while (user_desc.next())
+                                    {   
+                                        //checking and storing the value of password_last_set_time
+                                        var property = user_desc.getColumnValueAsString('property');
+                                        if (property === 'PASSWORD_LAST_SET_TIME')
+                                        {
+                                        var password_last_set_time = user_desc.getColumnValueAsString('value');
+                                        }
+                                    }
+                                    while(currentuserobject.next())
+                                        {
+                                        var currentuser = currentuserobject.getColumnValue('CURRENT_USER()')
+                                        }
+                                    for(var i = 0; i<accountadmin_users.length; i++)
+                                        {
+                                        var accountadmin = 'false';
+                                        if (name === accountadmin_users[i])
+                                            {
+                                            accountadmin = 'true';
+                                            break;
+                                            }
+                                        }
+                                    if (truncate_flag_table_3 == 0)
+                                        {
+                                        executeonly(`Truncate table if exists ${database}.${schema}.${tablename[1]};`);
+                                        truncate_flag_table_3 = 1;
+                                        }
+                                    executeonly(`Insert into ${database}.${schema}.${tablename[1]} values ('${name}','${disabled}','${ext_auth_duo}','${client_session_keep_alive}','${client_session_keep_alive_heart_freq}','${password_last_set_time}','${currentuser}', '${last_success_login}', '${has_password}', '${default_role}', '${email}', '${days_to_expiry}', '${must_change_password}', '${accountadmin}', '${current_date}');`);
+                                }
+                            }
+                        catch(ERROR)
+                            {
+                                log("Error during insertion in "+tablename[1]+": " + ERROR);
+                                break;
+                            }
+                    }
+                }
+            }
+        }
+    }
+    catch(ERROR){
+        log("Error while fetching the user details: " + ERROR);
+    }
+    
+    log("Exiting the Stored Procedure");
+    return "Successful Execution!";
+    
+    //custom function to execute sql statement
+    function executeonly(query){
+        snowflake.createStatement( { sqlText: query } ).execute();
+        }
+        
+    //custom function to execute sql statement and return the output
+    function executeandreturn(query){
+        var output = snowflake.createStatement( { sqlText: query } ).execute();
+        return output;
+        }
+        
+    //function to extract date from the current time stamp
+    function convert(str) {
+        var date = new Date(str),
+        mnth = ("0" + (date.getMonth() + 1)).slice(-2),
+        day = ("0" + date.getDate()).slice(-2);
+        return [date.getFullYear(), mnth, day].join("-");
+    }
+    
+    //function to call the logging stored procedure
+    function log(msg){
+      if (do_log == true)
+        {
+        try
+            {
+              var today = new Date();
+              var date = (today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()).toString();
+              var time = (today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds()).toString();
+              var time_stamp = date+' '+time;
+
+
+              executeonly(`create table if not exists ${database}.${schema}.${log_table} (Timestamp string, Logs string)`);
+              executeonly(`insert into ${database}.${schema}.${log_table} values ('${time_stamp}', '${msg}')`);
+            } 
+          catch (ERROR){
+              throw ERROR;
+          }
+      }
+    }
+  $$
+  ;
+
+--Drop the tables if they exist
+Drop table if exists SAFE_DB.SAFE_Schema.policies;
+Drop table if exists SAFE_DB.SAFE_Schema.user_details;
+Drop table if exists SAFE_DB.SAFE_Schema.userpolicies;
+
+call Stored_Procedure();
+
+--creating task
+CREATE OR REPLACE TASK TASK_SAFE
+  WAREHOUSE = SAFE_WH
+  SCHEDULE = '1440 MINUTE'
+AS
+CALL Stored_Procedure();
+
+--starting the TASK
+ALTER TASK TASK_SAFE RESUME;
+
+--command to check TASK state
+SELECT *
+FROM table(
+  information_schema.task_history(
+    task_name=>'TASK_SAFE'
+    ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())
+  )
+);
+
+--creating read-only role
+create role IF NOT EXISTS read_only_role  comment = 'This role is limited to querying tables in SAFE_Schema';
+
+--giving grants to the role
+grant usage on database SAFE_DB to role read_only_role;
+grant usage on schema SAFE_DB.SAFE_Schema to role read_only_role;
+grant select on all tables in schema SAFE_DB.SAFE_Schema to role read_only_role;
+grant role read_only_role  to role sysadmin;
+grant usage on warehouse SAFE_WH to role read_only_role;
+
+--defining USERNAME & PASSWORD for the new read-only user
+set user_name = 'SAFE_user';
+drop user if exists SAFE_user;
+set user_password = (select randstr(10, random()) from table(generator(rowcount => 1)));
+
+--create a user with read-only role
+create user IF NOT EXISTS SAFE_user LOGIN_NAME = $user_name password=$user_password default_role = read_only_role default_warehouse = 'SAFE_WH';
+grant role read_only_role to user SAFE_user;
+
+--creating output table for displaying information required for SAFE on-boarding
+TRUNCATE TABLE IF EXISTS SAFE_Info;
+CREATE TABLE IF NOT EXISTS SAFE_info (Username VARCHAR, User_Password VARCHAR);
+INSERT INTO SAFE_info values($user_name, $user_password);
+SELECT * FROM SAFE_info;
