@@ -22,6 +22,8 @@ We tried to implement a solution that offers a workaround to this situation by c
 
 
 
+NOTE: The below-mentioned steps are only supported on linux/unix machines
+
 **STEP 1**: Copy the `.env.example` contents to `.env`
 
 ```
