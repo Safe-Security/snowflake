@@ -113,9 +113,9 @@ Execute the commands mentioned below with ACCOUNTADMIN role to check the state o
 
 Execute the command mentioned below and check for the Logs, if they are similar to the one in the picture below then the execution was successful
 
-- **select * from safe_db.safe_schema.log_table;**
+- **select * from safe_db.safe_schema.safe_security_procedure_logs;**
 
-![image](screenshots/log_table.png)
+![image](screenshots/safe_security_procedure_logs.png)
 
 _note_: _The logs shown in the image above are for a particular timestamp_
 
