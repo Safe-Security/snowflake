@@ -85,7 +85,7 @@ Execute the commands mentioned below and check whether the column **CREATED_AT**
 
 ![image](screenshots/user_table.png)
 
-- **select * from safe_db.safe_schema.userpolicies;**
+- **select * from safe_db.safe_schema.user_policies;**
 
 ![image](screenshots/user_policy_table.png)
 
