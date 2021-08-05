@@ -32,7 +32,7 @@ cp .env.example .env
 
 **STEP 2**: Edit the variables in `.env` file (all variables are configured with default values)
 
-**STEP 3**: Execute snowflake.sh to create a snowflakeStoredProcedureScript.txt
+**STEP 3**: Execute snowflake.sh to create a snowflakeStoredProcedureScript
 
 Output should look like
 
