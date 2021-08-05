@@ -19,36 +19,31 @@ create or replace procedure {Procedure_name}()
   execute as caller
   as     
   $$
-   
-    //variable declaration
+  
+    // Defining database, schema and tablenames
     var database = "{DB_NAME}";
     var schema = "{DB_SCHEMA}";
-    var tablename = new Array ("policies", "user_details", "userpolicies");
-    
-    //declaration of logging variables
+    var tablename = new Array ("policies", "user_details", "user_policies");
+
+    // Defining variables to configure and control logging
     var do_log = true;
-    var log_table = "log_table";
+    var log_table = "{Logging_table}";
     log("Initiating the execution of the Stored Procedure");
-    
-    //storing current time
+
+    // Fetching current time
+    try{
     var current_date_obj = executeandreturn('select getdate();');
     current_date_obj.next();
     var current_date = convert(current_date_obj.getColumnValue('GETDATE()'));
-    
-    //creating new un-privileged table
-    try{
-    log("Initiating table creation");
-    executeonly(`create table if not exists ${database}.${schema}.${tablename[0]} (policy_name VARCHAR, created_at VARCHAR);`);
-    executeonly(`create table if not exists ${database}.${schema}.${tablename[1]} (username VARCHAR, disabled VARCHAR, ext_auth_duo VARCHAR, client_session_keep_alive VARCHAR, client_session_keep_alive_heartbeat_frequency VARCHAR, password_last_set VARCHAR, CurrentUser VARCHAR, last_success_login VARCHAR, has_password VARCHAR, default_role VARCHAR, email VARCHAR, days_to_expiry VARCHAR, must_change_password VARCHAR,accountadmin_grant VARCHAR, created_at VARCHAR);`);
-    executeonly(`create table if not exists ${database}.${schema}.${tablename[2]} (username VARCHAR, policy VARCHAR, created_at VARCHAR);`);
     }
     catch(ERROR){
-        log("Error during table creation: " + ERROR);
+        log("Error while fecthing current date: "+ERROR);
     }
-    
-    //fetch all the users
-    var users = executeandreturn("show users;");
-    
+
+
+    // Creating un-privileged tables if doesn't exist
+    create_table();
+
     //fetch all users with accountadmin role grants
     try{
       var accountadmin_role_grants_object = executeandreturn("show grants of role ACCOUNTADMIN;");
@@ -58,49 +53,38 @@ create or replace procedure {Procedure_name}()
               accountadmin_users.push(accountadmin_role_grants_object.getColumnValue('grantee_name'));
           }
        }
-    catch{
-        log("Error in fetching the users with Accountadmin grant");
+    catch(ERROR){
+        log("Error in fetching the users with Accountadmin grant: "+ERROR);
     }
-    
-    //fetch the list of network policies
-    var network_policies_object = executeandreturn("show network policies;");
-   
+
+
     try{
-        //condition to check whether network policies gives an output or not
-        if (network_policies_object.getRowCount() !== 0)
-        {
-           log("Initiating insertion into the policies table");
-            
-            //TRUNCATING Policies table
-            executeonly(`Truncate table if exists ${database}.${schema}.${tablename[0]};`);
-  
-            while (network_policies_object.next())
-            {
-                //insert the result into {DB_NAME}.{DB_SCHEMA}.policies table
-                var network_policy = network_policies_object.getColumnValueAsString('name');
-                executeonly(`Insert into ${database}.${schema}.${tablename[0]} VALUES ('${network_policy}','${current_date}');`);
-            }
-        }
+
+        //fetch the list of network policies
+        var network_policies_object = executeandreturn("show network policies;");
+
+        //function call for insertion into the table policies
+        insert_policies_into_table();
     }
     catch(ERROR){
-        log("Error during insertion in "+tablename[0]+": " + ERROR);
+        log("Error while fetching the network policies: " + ERROR);
     }
-    
-    //initialisation of the truncate flags
-    truncate_flag_table_2 = 0;
-    truncate_flag_table_3 = 0;
 
-    try
-    {    
-        //condition for checking whether users and roles are accessible
-        if (users.getRowCount() !== 0)
-        {
-        log("Initiating insertion into the user_details and userpolicies table");
-        
-        while(users.next())
-            {
-            if(users.getColumnValue('name')!='SNOWFLAKE')
-                    {
+    //Flags used for the trunctaion of user_policies and user_details table
+    var truncate_flag_user_details = 0;
+    var truncate_flag_user_policies = 0;
+
+    //fetch all the users
+    var users = executeandreturn("show users;");
+
+    //condition to check whether 'show users' gives an output or not
+    if (users.getRowCount() !== 0)
+    {
+        log("Initiating insertion into the user_details and user_policies table");
+        while(users.next()){
+            if(users.getColumnValue('name')!='SNOWFLAKE'){
+                //fetching the user's details obtained using the 'show users' command
+                try{
                     //storing the username, diabled and ext_auth_duo for each user obtained using 'show users' command
                     var name = users.getColumnValue('name');
                     var disabled = users.getColumnValue('disabled');
@@ -111,113 +95,41 @@ create or replace procedure {Procedure_name}()
                     var email = users.getColumnValue('email');
                     var days_to_expiry = users.getColumnValue('days_to_expiry');
                     var must_change_password = users.getColumnValue('must_change_password');
-                    
-                    //fetch the list of user parameters and user description
-                    var user_parameters = executeandreturn("show parameters for user " + name);
-                    var user_desc = executeandreturn("desc user " + name);
-                    
-                    //storing the result of current_user
-                    var currentuserobject = executeandreturn("select current_user();");
-                    
-                    //Test the show parameter object
-                    if (user_parameters.getRowCount() !== 0)
-                    {
-                        
-                        try{
-                            //iterate over user parameters
-                            while (user_parameters.next())
-                                {   
-                                    //checking and storing the value of client_session_keep_alive & client_session_keep_alive_heart_freq for each user
-                                    var key = user_parameters.getColumnValue('key');
-                                    if (key === 'CLIENT_SESSION_KEEP_ALIVE')
-                                    {
-                                    var client_session_keep_alive = user_parameters.getColumnValueAsString('value');
-                                    }
-                                    else if (key === 'CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY')
-                                    {
-                                    var client_session_keep_alive_heart_freq = user_parameters.getColumnValueAsString('value');
-                                    }
-                                    else if(key === 'NETWORK_POLICY')
-                                    {
-                                        var user_policy = user_parameters.getColumnValueAsString('value');
-                                        if (truncate_flag_table_2 == 0)
-                                            {
-                                                executeonly(`Truncate table if exists ${database}.${schema}.${tablename[2]};`);
-                                                truncate_flag_table_2 = 1;
-                                            }
-                                        executeonly(`Insert into ${database}.${schema}.${tablename[2]} values ('${name}','${user_policy}','${current_date}')`);
-                                    }
-                                }
-                            }
-                        catch(ERROR)
-                        {   
-                            log("Error during insertion in "+tablename[2]+": " + ERROR);
-                            break;
-                        }
-                        try{
-                            //Test the desc users object
-                            if (user_desc.getRowCount() !== 0 && currentuserobject.getRowCount() !== 0 && accountadmin_role_grants_object.getRowCount() !== 0)
-                                {   
-                                    
-                                    //iterate over user descriptions
-                                    while (user_desc.next())
-                                    {   
-                                        //checking and storing the value of password_last_set_time
-                                        var property = user_desc.getColumnValueAsString('property');
-                                        if (property === 'PASSWORD_LAST_SET_TIME')
-                                        {
-                                        var password_last_set_time = user_desc.getColumnValueAsString('value');
-                                        }
-                                    }
-                                    while(currentuserobject.next())
-                                        {
-                                        var currentuser = currentuserobject.getColumnValue('CURRENT_USER()')
-                                        }
-                                    for(var i = 0; i<accountadmin_users.length; i++)
-                                        {
-                                        var accountadmin = 'false';
-                                        if (name === accountadmin_users[i])
-                                            {
-                                            accountadmin = 'true';
-                                            break;
-                                            }
-                                        }
-                                    if (truncate_flag_table_3 == 0)
-                                        {
-                                        executeonly(`Truncate table if exists ${database}.${schema}.${tablename[1]};`);
-                                        truncate_flag_table_3 = 1;
-                                        }
-                                    executeonly(`Insert into ${database}.${schema}.${tablename[1]} values ('${name}','${disabled}','${ext_auth_duo}','${client_session_keep_alive}','${client_session_keep_alive_heart_freq}','${password_last_set_time}','${currentuser}', '${last_success_login}', '${has_password}', '${default_role}', '${email}', '${days_to_expiry}', '${must_change_password}', '${accountadmin}', '${current_date}');`);
-                                }
-                            }
-                        catch(ERROR)
-                            {
-                                log("Error during insertion in "+tablename[1]+": " + ERROR);
-                                break;
-                            }
-                    }
                 }
+                catch(ERROR){
+                    log("Error while fetching user details: "+ERROR);
+                }
+
+                //function call for insertion into table user policies
+                insert_user_policies_into_table();
+
+                //fetch the list of user description
+                var user_desc = executeandreturn("desc user " + name);
+
+                //storing the result of current_user
+                var currentuser = executeandreturn("select current_user();");
+
+                //function call for insertion into table user_details
+                insert_user_details_into_table();
             }
         }
+
     }
-    catch(ERROR){
-        log("Error while fetching the user details: " + ERROR);
-    }
-    
+
     log("Exiting the Stored Procedure");
     return "Successful Execution!";
-    
+
     //custom function to execute sql statement
     function executeonly(query){
         snowflake.createStatement( { sqlText: query } ).execute();
         }
-        
+
     //custom function to execute sql statement and return the output
     function executeandreturn(query){
         var output = snowflake.createStatement( { sqlText: query } ).execute();
         return output;
         }
-        
+
     //function to extract date from the current time stamp
     function convert(str) {
         var date = new Date(str),
@@ -225,7 +137,7 @@ create or replace procedure {Procedure_name}()
         day = ("0" + date.getDate()).slice(-2);
         return [date.getFullYear(), mnth, day].join("-");
     }
-    
+
     //function to call the logging stored procedure
     function log(msg){
       if (do_log == true)
@@ -237,7 +149,6 @@ create or replace procedure {Procedure_name}()
               var time = (today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds()).toString();
               var time_stamp = date+' '+time;
 
-
               executeonly(`create table if not exists ${database}.${schema}.${log_table} (Timestamp string, Logs string)`);
               executeonly(`insert into ${database}.${schema}.${log_table} values ('${time_stamp}', '${msg}')`);
             } 
@@ -246,6 +157,127 @@ create or replace procedure {Procedure_name}()
           }
       }
     }
+
+    //function for creating tables
+    function create_table(){
+        try{
+            log("Initiating table creation");
+            executeonly(`create table if not exists ${database}.${schema}.${tablename[0]} (policy_name VARCHAR, created_at VARCHAR);`);
+            executeonly(`create table if not exists ${database}.${schema}.${tablename[1]} (username VARCHAR, disabled VARCHAR, ext_auth_duo VARCHAR, client_session_keep_alive VARCHAR, client_session_keep_alive_heartbeat_frequency VARCHAR, password_last_set VARCHAR, CurrentUser VARCHAR, last_success_login VARCHAR, has_password VARCHAR, default_role VARCHAR, email VARCHAR, days_to_expiry VARCHAR, must_change_password VARCHAR,accountadmin_grant VARCHAR, created_at VARCHAR);`);
+            executeonly(`create table if not exists ${database}.${schema}.${tablename[2]} (username VARCHAR, policy VARCHAR, created_at VARCHAR);`);
+            }
+            catch(ERROR){
+                log("Error during table creation: " + ERROR);
+            }
+    }
+
+    //insertion into table polcies
+    function insert_policies_into_table(){
+        try{
+            //condition to check whether network policies gives an output or not
+            if (network_policies_object.getRowCount() !== 0)
+            {
+               log("Initiating insertion into the policies table");
+
+                //TRUNCATING Policies table
+                executeonly(`Truncate table if exists ${database}.${schema}.${tablename[0]};`);
+
+                while (network_policies_object.next())
+                {
+                    //insert the result into {DB_NAME}.{DB_SCHEMA}.policies table
+                    var network_policy = network_policies_object.getColumnValueAsString('name');
+                    executeonly(`Insert into ${database}.${schema}.${tablename[0]} VALUES ('${network_policy}','${current_date}');`);
+                }
+            }
+        }
+        catch(ERROR){
+            log("Error during insertion in "+tablename[0]+": " + ERROR);
+        }
+    }
+
+    //insertion into table user_policies
+    function insert_user_policies_into_table(){
+
+        //fetch the list of user parameters
+        var user_parameters = executeandreturn("show parameters for user " + name);
+
+        if (user_parameters.getRowCount() !== 0 )
+        {
+            try{
+                //iterate over user parameters
+                while (user_parameters.next())
+                {
+                    //checking and storing the value of  network policies
+                    var key = user_parameters.getColumnValue('key');
+                    if(key === 'NETWORK_POLICY')
+                    {
+                        var user_policy = user_parameters.getColumnValueAsString('value');
+                        if (truncate_flag_user_policies == 0)
+                        {
+                            executeonly(`Truncate table if exists ${database}.${schema}.${tablename[2]};`);
+                            truncate_flag_user_policies = 1;
+                        }
+                        executeonly(`Insert into ${database}.${schema}.${tablename[2]} values ('${name}','${user_policy}','${current_date}')`);
+                    }
+                }
+            }catch(ERROR){
+                log("Error during insertion into "+tablename[1]+" for user "+name+": " + ERROR);
+            }
+        }
+    }
+
+    function insert_user_details_into_table(){
+        try{
+            //fetch the list of user parameters
+            var user_parameters = executeandreturn("show parameters for user " + name);
+
+            if (user_parameters.getRowCount() !== 0 && user_desc.getRowCount() !== 0 && currentuser.getRowCount() !== 0 && accountadmin_role_grants_object.getRowCount() !== 0){
+                //iterate over user parameters
+                while (user_parameters.next())
+                    {   
+                        //checking and storing the value of client_session_keep_alive & client_session_keep_alive_heart_freq for each user
+                        var key = user_parameters.getColumnValue('key');
+                        if (key === 'CLIENT_SESSION_KEEP_ALIVE'){
+                            var client_session_keep_alive = user_parameters.getColumnValueAsString('value');
+                        }
+                        else if (key === 'CLIENT_SESSION_KEEP_ALIVE_HEARTBEAT_FREQUENCY'){
+                            var client_session_keep_alive_heart_freq = user_parameters.getColumnValueAsString('value');
+                        }
+                    }
+                //iterate over user descriptions
+                while (user_desc.next())
+                    {   
+                        //checking and storing the value of password_last_set_time
+                        var property = user_desc.getColumnValueAsString('property');
+                        if (property === 'PASSWORD_LAST_SET_TIME')
+                        {
+                        var password_last_set_time = user_desc.getColumnValueAsString('value');
+                        }
+                    }
+                while(currentuser.next())
+                    {
+                    var current_user = currentuser.getColumnValue('CURRENT_USER()')
+                    }
+                for(var i = 0; i<accountadmin_users.length; i++)
+                    {
+                    var accountadmin = 'false';
+                    if (name === accountadmin_users[i])
+                        {
+                        accountadmin = 'true';
+                        break;
+                        }
+                    }
+                if (truncate_flag_user_details == 0){
+                    executeonly(`Truncate table if exists ${database}.${schema}.${tablename[1]};`);
+                    truncate_flag_user_details = 1;
+                    }
+                    executeonly(`Insert into ${database}.${schema}.${tablename[1]} values ('${name}','${disabled}','${ext_auth_duo}','${client_session_keep_alive}','${client_session_keep_alive_heart_freq}','${password_last_set_time}','${current_user}', '${last_success_login}', '${has_password}', '${default_role}', '${email}', '${days_to_expiry}', '${must_change_password}', '${accountadmin}', '${current_date}');`);
+            }
+        }
+        catch(ERROR){
+            log("Error during insertion into "+tablename[1]+" for user "+name+": " + ERROR);
+        }
+    }   
   $$
   ;
 

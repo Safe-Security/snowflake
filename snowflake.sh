@@ -6,16 +6,16 @@ source <(sed 's/\(=[[:blank:]]*\)\(.*\)/\1"\2"/' "$PWD/.env")
 # Create a copy of stored procedure template
 
 echo "Copying template to a new file"
-cp snowflakeStoredProcedure.template snowflakeStoredProcedureScript.txt
+cp snowflakeStoredProcedure.template $SQL_SCRIPT_NAME
 
-# Replace strings in snowflakeStoredProcedureScript.txt with values from .env
+# Replace strings in Snowflake SQL Script with values from .env
 
 echo "Replacing variables"
-sed -i "s/{DB_NAME}/${DB_NAME}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{DB_SCHEMA}/${DB_SCHEMA}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{WAREHOUSE}/${WAREHOUSE}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{Procedure_name}/${Procedure_name}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{USER}/${USER}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{TASK_NAME}/${TASK_NAME}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{ROLE}/${ROLE}/" snowflakeStoredProcedureScript.txt
-sed -i "s/{PROC_FREQ}/${PROC_FREQ}/" snowflakeStoredProcedureScript.txt
+sed -i "s/{DB_NAME}/${DB_NAME}/" $SQL_SCRIPT_NAME
+sed -i "s/{DB_SCHEMA}/${DB_SCHEMA}/" $SQL_SCRIPT_NAME
+sed -i "s/{WAREHOUSE}/${WAREHOUSE}/" $SQL_SCRIPT_NAME
+sed -i "s/{Procedure_name}/${Procedure_name}/" $SQL_SCRIPT_NAME
+sed -i "s/{USER}/${USER}/" $SQL_SCRIPT_NAME
+sed -i "s/{TASK_NAME}/${TASK_NAME}/" $SQL_SCRIPT_NAME
+sed -i "s/{ROLE}/${ROLE}/" $SQL_SCRIPT_NAME
+sed -i "s/{PROC_FREQ}/${PROC_FREQ}/" $SQL_SCRIPT_NAME
