@@ -1,35 +1,28 @@
 // Set User Role to Accountadmin
 use role accountadmin;
-
 // Database
 create database if not exists {DB_NAME};
 use {DB_NAME};
-
 // Schema
 create schema if not exists {DB_SCHEMA};
 use {DB_NAME}.{DB_SCHEMA};
-
 // Warehouse
 create warehouse if not exists {WAREHOUSE} with warehouse_size = 'SMALL';
-
 //Definition of Procedure
 create or replace procedure {Procedure_name}()
   returns string not null
   language javascript
   execute as caller
   as     
-  $$
-  
+  $$ 
     // Defining database, schema and tablenames
     var database = "{DB_NAME}";
     var schema = "{DB_SCHEMA}";
     var tablename = new Array ("policies", "user_details", "user_policies");
-
     // Defining variables to configure and control logging
     var do_log = true;
     var log_table = "{Logging_table}";
     log("Initiating the execution of the Stored Procedure");
-
     // Fetching current time
     try{
     var current_date_obj = executeandreturn('select getdate();');
@@ -39,11 +32,8 @@ create or replace procedure {Procedure_name}()
     catch(ERROR){
         log("Error while fecthing current date: "+ERROR);
     }
-
-
     // Creating un-privileged tables if doesn't exist
     create_table();
-
     //fetch all users with accountadmin role grants
     try{
       var accountadmin_role_grants_object = executeandreturn("show grants of role ACCOUNTADMIN;");
@@ -56,27 +46,20 @@ create or replace procedure {Procedure_name}()
     catch(ERROR){
         log("Error in fetching the users with Accountadmin grant: "+ERROR);
     }
-
-
     try{
-
         //fetch the list of network policies
         var network_policies_object = executeandreturn("show network policies;");
-
         //function call for insertion into the table policies
         insert_policies_into_table();
     }
     catch(ERROR){
         log("Error while fetching the network policies: " + ERROR);
     }
-
     //Flags used for the trunctaion of user_policies and user_details table
     var truncate_flag_user_details = 0;
     var truncate_flag_user_policies = 0;
-
     //fetch all the users
     var users = executeandreturn("show users;");
-
     //condition to check whether 'show users' gives an output or not
     if (users.getRowCount() !== 0)
     {
@@ -99,37 +82,28 @@ create or replace procedure {Procedure_name}()
                 catch(ERROR){
                     log("Error while fetching user details: "+ERROR);
                 }
-
                 //function call for insertion into table user policies
                 insert_user_policies_into_table();
-
                 //fetch the list of user description
                 var user_desc = executeandreturn("desc user " + name);
-
                 //storing the result of current_user
                 var currentuser = executeandreturn("select current_user();");
-
                 //function call for insertion into table user_details
                 insert_user_details_into_table();
             }
         }
-
     }
-
     log("Exiting the Stored Procedure");
     return "Successful Execution!";
-
     //custom function to execute sql statement
     function executeonly(query){
         snowflake.createStatement( { sqlText: query } ).execute();
         }
-
     //custom function to execute sql statement and return the output
     function executeandreturn(query){
         var output = snowflake.createStatement( { sqlText: query } ).execute();
         return output;
         }
-
     //function to extract date from the current time stamp
     function convert(str) {
         var date = new Date(str),
@@ -137,7 +111,6 @@ create or replace procedure {Procedure_name}()
         day = ("0" + date.getDate()).slice(-2);
         return [date.getFullYear(), mnth, day].join("-");
     }
-
     //function to call the logging stored procedure
     function log(msg){
       if (do_log == true)
@@ -148,7 +121,6 @@ create or replace procedure {Procedure_name}()
               var date = (today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()).toString();
               var time = (today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds()).toString();
               var time_stamp = date+' '+time;
-
               executeonly(`create table if not exists ${database}.${schema}.${log_table} (Timestamp string, Logs string)`);
               executeonly(`insert into ${database}.${schema}.${log_table} values ('${time_stamp}', '${msg}')`);
             } 
@@ -157,7 +129,6 @@ create or replace procedure {Procedure_name}()
           }
       }
     }
-
     //function for creating tables
     function create_table(){
         try{
@@ -170,7 +141,6 @@ create or replace procedure {Procedure_name}()
                 log("Error during table creation: " + ERROR);
             }
     }
-
     //insertion into table polcies
     function insert_policies_into_table(){
         try{
@@ -178,10 +148,8 @@ create or replace procedure {Procedure_name}()
             if (network_policies_object.getRowCount() !== 0)
             {
                log("Initiating insertion into the policies table");
-
                 //TRUNCATING Policies table
                 executeonly(`Truncate table if exists ${database}.${schema}.${tablename[0]};`);
-
                 while (network_policies_object.next())
                 {
                     //insert the result into {DB_NAME}.{DB_SCHEMA}.policies table
@@ -194,13 +162,10 @@ create or replace procedure {Procedure_name}()
             log("Error during insertion in "+tablename[0]+": " + ERROR);
         }
     }
-
     //insertion into table user_policies
     function insert_user_policies_into_table(){
-
         //fetch the list of user parameters
         var user_parameters = executeandreturn("show parameters for user " + name);
-
         if (user_parameters.getRowCount() !== 0 )
         {
             try{
@@ -225,12 +190,10 @@ create or replace procedure {Procedure_name}()
             }
         }
     }
-
     function insert_user_details_into_table(){
         try{
             //fetch the list of user parameters
             var user_parameters = executeandreturn("show parameters for user " + name);
-
             if (user_parameters.getRowCount() !== 0 && user_desc.getRowCount() !== 0 && currentuser.getRowCount() !== 0 && accountadmin_role_grants_object.getRowCount() !== 0){
                 //iterate over user parameters
                 while (user_parameters.next())
@@ -280,24 +243,19 @@ create or replace procedure {Procedure_name}()
     }   
   $$
   ;
-
 --Drop the tables if they exist
 Drop table if exists {DB_NAME}.{DB_SCHEMA}.policies;
 Drop table if exists {DB_NAME}.{DB_SCHEMA}.user_details;
 Drop table if exists {DB_NAME}.{DB_SCHEMA}.userpolicies;
-
 call {Procedure_name}();
-
 --creating task
 CREATE OR REPLACE TASK {TASK_NAME}
   WAREHOUSE = {WAREHOUSE}
   SCHEDULE = '{PROC_FREQ} MINUTE'
 AS
 CALL {Procedure_name}();
-
 --starting the TASK
 ALTER TASK {TASK_NAME} RESUME;
-
 --command to check TASK state
 SELECT *
 FROM table(
@@ -306,26 +264,21 @@ FROM table(
     ,scheduled_time_range_start=>dateadd('hour',-1,current_timestamp())
   )
 );
-
 --creating read-only role
 create role IF NOT EXISTS {ROLE}  comment = 'This role is limited to querying tables in {DB_SCHEMA}';
-
 --giving grants to the role
 grant usage on database {DB_NAME} to role {ROLE};
 grant usage on schema {DB_NAME}.{DB_SCHEMA} to role {ROLE};
 grant select on all tables in schema {DB_NAME}.{DB_SCHEMA} to role {ROLE};
 grant role {ROLE}  to role sysadmin;
 grant usage on warehouse {WAREHOUSE} to role {ROLE};
-
 --defining USERNAME & PASSWORD for the new read-only user
 set user_name = '{USER}';
 drop user if exists {USER};
 set user_password = (select randstr(10, random()) from table(generator(rowcount => 1)));
-
 --create a user with read-only role
 create user IF NOT EXISTS {USER} LOGIN_NAME = $user_name password=$user_password default_role = {ROLE} default_warehouse = '{WAREHOUSE}';
 grant role {ROLE} to user {USER};
-
 --creating output table for displaying information required for SAFE on-boarding
 TRUNCATE TABLE IF EXISTS SAFE_Info;
 CREATE TABLE IF NOT EXISTS SAFE_info (Username VARCHAR, User_Password VARCHAR);
