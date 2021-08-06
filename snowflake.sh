@@ -19,3 +19,4 @@ sed -i "s/{USER}/${USER}/" $SQL_SCRIPT_NAME
 sed -i "s/{TASK_NAME}/${TASK_NAME}/" $SQL_SCRIPT_NAME
 sed -i "s/{ROLE}/${ROLE}/" $SQL_SCRIPT_NAME
 sed -i "s/{PROC_FREQ}/${PROC_FREQ}/" $SQL_SCRIPT_NAME
+sed -i "s/{Logging_table}/${Logging_table}/" $SQL_SCRIPT_NAME
