@@ -18,7 +18,7 @@ create or replace procedure {Procedure_name}()
     // Defining database, schema and tablenames
     var database = "{DB_NAME}";
     var schema = "{DB_SCHEMA}";
-    var tablename = new Array ("policies", "user_details", "user_policies");
+    var tablename = new Array ("policies", "user_details", "userpolicies");
     // Defining variables to configure and control logging
     var do_log = true;
     var log_table = "{Logging_table}";
@@ -63,7 +63,7 @@ create or replace procedure {Procedure_name}()
     //condition to check whether 'show users' gives an output or not
     if (users.getRowCount() !== 0)
     {
-        log("Initiating insertion into the user_details and user_policies table");
+        log("Initiating insertion into the user_details and userpolicies table");
         while(users.next()){
             if(users.getColumnValue('name')!='SNOWFLAKE'){
                 //fetching the user's details obtained using the 'show users' command
