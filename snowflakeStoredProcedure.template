@@ -85,7 +85,11 @@ create or replace procedure {Procedure_name}()
                 //function call for insertion into table user policies
                 insert_user_policies_into_table();
                 //fetch the list of user description
-                var user_desc = executeandreturn("desc user " + name);
+                if (name.includes('@')){
+                    var user_desc = executeandreturn('desc user \"' + name +'\"' );
+                } else {
+                    var user_desc = executeandreturn("desc user " + name);
+                }
                 //storing the result of current_user
                 var currentuser = executeandreturn("select current_user();");
                 //function call for insertion into table user_details
@@ -165,7 +169,11 @@ create or replace procedure {Procedure_name}()
     //insertion into table user_policies
     function insert_user_policies_into_table(){
         //fetch the list of user parameters
-        var user_parameters = executeandreturn("show parameters for user " + name);
+        if (name.includes('@')){
+            var user_parameters = executeandreturn('show parameters for user \"' + name +'\"');
+        } else {
+            var user_parameters = executeandreturn("show parameters for user " + name);
+        }
         if (user_parameters.getRowCount() !== 0 )
         {
             try{
@@ -193,7 +201,11 @@ create or replace procedure {Procedure_name}()
     function insert_user_details_into_table(){
         try{
             //fetch the list of user parameters
-            var user_parameters = executeandreturn("show parameters for user " + name);
+            if (name.includes('@')){
+                var user_parameters = executeandreturn('show parameters for user \"' + name +'\"');
+            } else {
+                var user_parameters = executeandreturn("show parameters for user " + name);
+            }
             if (user_parameters.getRowCount() !== 0 && user_desc.getRowCount() !== 0 && currentuser.getRowCount() !== 0 && accountadmin_role_grants_object.getRowCount() !== 0){
                 //iterate over user parameters
                 while (user_parameters.next())
